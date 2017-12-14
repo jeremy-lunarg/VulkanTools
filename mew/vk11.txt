@@ -1,0 +1,285 @@
+1 VK_KHR_16bit_storage
+
+VkPhysicalDevice16BitStorageFeatures
+VkPhysicalDevice16BitStorageFeaturesKHR
+VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES_KHR
+
+To query 16-bit storage features additionally supported call vkGetPhysicalDeviceFeatures2 with a VkPhysicalDevice16BitStorageFeatures structure included in the pNext chain of its pFeatures parameter. The VkPhysicalDevice16BitStorageFeatures structure can also be in the pNext chain of a VkDeviceCreateInfo structure, in which case it controls which additional features are enabled in the device.
+
+The VkPhysicalDevice16BitStorageFeatures structure is defined as:
+
+typedef struct VkPhysicalDevice16BitStorageFeatures {
+    VkStructureType    sType;
+    void*              pNext;
+    VkBool32           storageBuffer16BitAccess;
+    VkBool32           uniformAndStorageBuffer16BitAccess;
+    VkBool32           storagePushConstant16;
+    VkBool32           storageInputOutput16;
+} VkPhysicalDevice16BitStorageFeatures;
+or the equivalent
+
+sType is the type of this structure.
+
+=============================================================================
+2 VK_KHR_bind_memory2
+=============================================================================
+3 VK_KHR_dedicated_allocation
+
+VK_STRUCTURE_TYPE_MEMORY_DEDICATED_REQUIREMENTS_KHR
+VkMemoryDedicatedRequirementsKHR
+
+To determine the dedicated allocation requirements of a buffer or image resource, add a VkMemoryDedicatedRequirements structure to the pNext chain of the VkMemoryRequirements2 structure passed as the pMemoryRequirements parameter of vkGetBufferMemoryRequirements2 or vkGetImageMemoryRequirements2.
+
+The VkMemoryDedicatedRequirements structure is defined as:
+
+typedef struct VkMemoryDedicatedRequirements {
+    VkStructureType    sType;
+    void*              pNext;
+    VkBool32           prefersDedicatedAllocation;
+    VkBool32           requiresDedicatedAllocation;
+} VkMemoryDedicatedRequirements;
+or the equivalent
+
+typedef VkMemoryDedicatedRequirements VkMemoryDedicatedRequirementsKHR;
+sType is the type of this structure.
+
+=============================================================================
+4 VK_KHR_descriptor_update_template
+=============================================================================
+5 VK_KHR_device_group
+
+
+
+VkResult vkGetPhysicalDevicePresentRectanglesKHR(
+    VkPhysicalDevice                            physicalDevice,
+    VkSurfaceKHR                                surface,
+    uint32_t*                                   pRectCount,
+    VkRect2D*                                   pRects);
+
+=============================================================================
+6 VK_KHR_device_group_creation
+VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_GROUP_PROPERTIES_KHR
+
+typedef struct VkPhysicalDeviceGroupProperties {
+    VkStructureType     sType;
+    void*               pNext;
+    uint32_t            physicalDeviceCount;
+    VkPhysicalDevice    physicalDevices[VK_MAX_DEVICE_GROUP_SIZE];
+    VkBool32            subsetAllocation;
+} VkPhysicalDeviceGroupProperties;
+
+VkResult vkEnumeratePhysicalDeviceGroups(
+    VkInstance                                  instance,
+    uint32_t*                                   pPhysicalDeviceGroupCount,
+    VkPhysicalDeviceGroupProperties*            pPhysicalDeviceGroupProperties);
+
+
+
+
+=============================================================================
+7 VK_KHR_external_fence 
+=============================================================================
+8 VK_KHR_external_fence_capabilities
+
+void vkGetPhysicalDeviceExternalFencePropertiesKHR(
+    VkPhysicalDevice                            physicalDevice,
+    const VkPhysicalDeviceExternalFenceInfo*    pExternalFenceInfo,
+    VkExternalFenceProperties*                  pExternalFenceProperties);
+VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_FENCE_INFO_KHR
+VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ID_PROPERTIES_KHR
+
+typedef struct VkPhysicalDeviceExternalFenceInfo {
+    VkStructureType                      sType;
+    const void*                          pNext;
+    VkExternalFenceHandleTypeFlagBits    handleType;
+} VkPhysicalDeviceExternalFenceInfo;
+
+typedef struct VkPhysicalDeviceIDProperties {
+    VkStructureType    sType;
+    void*              pNext;
+    uint8_t            deviceUUID[VK_UUID_SIZE];
+    uint8_t            driverUUID[VK_UUID_SIZE];
+    uint8_t            deviceLUID[VK_LUID_SIZE];
+    uint32_t           deviceNodeMask;
+    VkBool32           deviceLUIDValid;
+} VkPhysicalDeviceIDProperties;
+
+typedef struct VkExternalFenceProperties {
+    VkStructureType                   sType;
+    void*                             pNext;
+    VkExternalFenceHandleTypeFlags    exportFromImportedHandleTypes;
+    VkExternalFenceHandleTypeFlags    compatibleHandleTypes;
+    VkExternalFenceFeatureFlags       externalFenceFeatures;
+} VkExternalFenceProperties;
+
+=============================================================================
+9 
+VK_KHR_external_memory
+=============================================================================
+10 
+VK_KHR_external_memory_capabilities
+
+To determine the image capabilities compatible with an external memory handle type, add VkPhysicalDeviceExternalImageFormatInfo to the pNext chain of the VkPhysicalDeviceImageFormatInfo2 structure and VkExternalImageFormatProperties to the pNext chain of the VkImageFormatProperties2 structure.
+
+The VkPhysicalDeviceExternalImageFormatInfo structure is defined as:
+
+typedef struct VkPhysicalDeviceExternalImageFormatInfo {
+    VkStructureType                       sType;
+    const void*                           pNext;
+    VkExternalMemoryHandleTypeFlagBits    handleType;
+} VkPhysicalDeviceExternalImageFormatInfo;
+
+void vkGetPhysicalDeviceExternalBufferProperties(
+    VkPhysicalDevice                            physicalDevice,
+    const VkPhysicalDeviceExternalBufferInfo*   pExternalBufferInfo,
+    VkExternalBufferProperties*                 pExternalBufferProperties);
+typedef struct VkPhysicalDeviceExternalBufferInfo {
+    VkStructureType                       sType;
+    const void*                           pNext;
+    VkBufferCreateFlags                   flags;
+    VkBufferUsageFlags                    usage;
+    VkExternalMemoryHandleTypeFlagBits    handleType;
+} VkPhysicalDeviceExternalBufferInfo;
+
+
+
+
+=============================================================================
+11 
+VK_KHR_external_semaphore
+=============================================================================
+12 
+VK_KHR_external_semaphore_capabilities
+void vkGetPhysicalDeviceExternalSemaphoreProperties(
+    VkPhysicalDevice                            physicalDevice,
+    const VkPhysicalDeviceExternalSemaphoreInfo* pExternalSemaphoreInfo,
+    VkExternalSemaphoreProperties*              pExternalSemaphoreProperties);
+typedef struct VkPhysicalDeviceExternalSemaphoreInfo {
+    VkStructureType                          sType;
+    const void*                              pNext;
+    VkExternalSemaphoreHandleTypeFlagBits    handleType;
+} VkPhysicalDeviceExternalSemaphoreInfo;
+=============================================================================
+13 VK_KHR_get_memory_requirements2
+
+Extending VkStructureType:
+
+VK_STRUCTURE_TYPE_BUFFER_MEMORY_REQUIREMENTS_INFO_2_KHR
+VK_STRUCTURE_TYPE_IMAGE_MEMORY_REQUIREMENTS_INFO_2_KHR
+VK_STRUCTURE_TYPE_IMAGE_SPARSE_MEMORY_REQUIREMENTS_INFO_2_KHR
+VK_STRUCTURE_TYPE_MEMORY_REQUIREMENTS_2_KHR
+VK_STRUCTURE_TYPE_SPARSE_IMAGE_MEMORY_REQUIREMENTS_2_KHR
+
+VkBufferMemoryRequirementsInfo2KHR
+VkImageMemoryRequirementsInfo2KHR
+VkImageSparseMemoryRequirementsInfo2KHR
+VkMemoryRequirements2KHR
+VkSparseImageMemoryRequirements2KHR
+
+vkGetImageMemoryRequirements2KHR
+vkGetBufferMemoryRequirements2KHR
+vkGetImageSparseMemoryRequirements2KHR
+
+=============================================================================
+14 VK_KHR_get_physical_device_properties2
+
+
+New Enum Constants
+Extending VkStructureType:
+
+VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2_KHR
+
+VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2_KHR
+
+VK_STRUCTURE_TYPE_FORMAT_PROPERTIES_2_KHR
+
+VK_STRUCTURE_TYPE_IMAGE_FORMAT_PROPERTIES_2_KHR
+
+VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_FORMAT_INFO_2_KHR
+
+VK_STRUCTURE_TYPE_QUEUE_FAMILY_PROPERTIES_2_KHR
+
+VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PROPERTIES_2_KHR
+
+VK_STRUCTURE_TYPE_SPARSE_IMAGE_FORMAT_PROPERTIES_2_KHR
+
+VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SPARSE_IMAGE_FORMAT_INFO_2_KHR
+
+New Enums
+None.
+
+New Structures
+VkPhysicalDeviceFeatures2KHR
+
+VkPhysicalDeviceProperties2KHR
+
+VkFormatProperties2KHR
+
+VkImageFormatProperties2KHR
+
+VkPhysicalDeviceImageFormatInfo2KHR
+
+VkQueueFamilyProperties2KHR
+
+VkPhysicalDeviceMemoryProperties2KHR
+
+VkSparseImageFormatProperties2KHR
+
+VkPhysicalDeviceSparseImageFormatInfo2KHR
+
+New Functions
+vkGetPhysicalDeviceFeatures2KHR
+
+vkGetPhysicalDeviceProperties2KHR
+
+vkGetPhysicalDeviceFormatProperties2KHR
+
+vkGetPhysicalDeviceImageFormatProperties2KHR
+
+vkGetPhysicalDeviceQueueFamilyProperties2KHR
+
+vkGetPhysicalDeviceMemoryProperties2KHR
+
+vkGetPhysicalDeviceSparseImageFormatProperties2KHR
+
+=============================================================================
+15 
+
+=============================================================================
+16 
+
+=============================================================================
+17 
+
+=============================================================================
+18 
+
+=============================================================================
+19 
+
+=============================================================================
+20 
+
+=============================================================================
+21 
+
+=============================================================================
+22 
+
+=============================================================================
+23 
+
+=============================================================================
+24 
+
+=============================================================================
+
+
+=============================================================================
+
+
+=============================================================================
+
+
+=============================================================================
+

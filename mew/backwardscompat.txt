@@ -1,0 +1,201 @@
+commit ca124fa74d0973830767b02c9be90d246c6e1eba
+Author: Joey Bzdek <joey@lunarg.com>
+Date:   Thu Mar 29 13:07:26 2018 -0600
+
+    vktrace: Fix 1.0 support for promoted entrypoints
+    
+    Change-Id: I0a755d7beecb68783917a11f1c02e017cba577d8
+
+diff --git a/scripts/vktrace_file_generator.py b/scripts/vktrace_file_generator.py
+index 14587ae..458233f 100755
+--- a/scripts/vktrace_file_generator.py
++++ b/scripts/vktrace_file_generator.py
+@@ -140,13 +140,14 @@ approved_ext = [
+                 ]
+ 
+ api_exclusions = [
++                'EnumerateInstanceVersion'
+                 ]
+ 
+ # Helper functions
+ 
+ def isSupportedCmd(cmd, cmd_extension_dict):
+     extension = cmd_extension_dict[cmd.name]
+-    if extension != 'VK_VERSION_1_0' and extension not in approved_ext:
++    if 'VK_VERSION_1_' not in extension and extension not in approved_ext:
+         return False
+ 
+     cmdname = cmd.name[2:]
+@@ -2318,7 +2319,6 @@ class VkTraceFileOutputGenerator(OutputGenerator):
+                                          'vkInvalidateMappedMemoryRanges',
+                                          'vkGetDeviceProcAddr',
+                                          'vkGetInstanceProcAddr',
+-                                         'vkEnumerateInstanceVersion',
+                                          'vkEnumerateInstanceExtensionProperties',
+                                          'vkEnumerateDeviceExtensionProperties',
+                                          'vkEnumerateInstanceLayerProperties',
+diff --git a/vktrace/vktrace_layer/vktrace_lib_trace.cpp b/vktrace/vktrace_layer/vktrace_lib_trace.cpp
+index f999470..569e679 100644
+--- a/vktrace/vktrace_layer/vktrace_lib_trace.cpp
++++ b/vktrace/vktrace_layer/vktrace_lib_trace.cpp
+@@ -3756,15 +3756,44 @@ VKTRACER_EXPORT VKAPI_ATTR VkResult VKAPI_CALL __HOOKED_vkCreateDescriptorUpdate
+ 
+ VKTRACER_EXPORT VKAPI_ATTR void VKAPI_CALL __HOOKED_vkDestroyDescriptorUpdateTemplate(
+     VkDevice device, VkDescriptorUpdateTemplate descriptorUpdateTemplate, const VkAllocationCallbacks* pAllocator) {
+-    __HOOKED_vkDestroyDescriptorUpdateTemplateKHR(device, descriptorUpdateTemplate, pAllocator);
++    vktrace_trace_packet_header* pHeader;
++    packet_vkDestroyDescriptorUpdateTemplate* pPacket = NULL;
++    CREATE_TRACE_PACKET(vkDestroyDescriptorUpdateTemplate, sizeof(VkAllocationCallbacks));
++    mdd(device)->devTable.DestroyDescriptorUpdateTemplate(device, descriptorUpdateTemplate, pAllocator);
++    vktrace_set_packet_entrypoint_end_time(pHeader);
++    pPacket = interpret_body_as_vkDestroyDescriptorUpdateTemplate(pHeader);
++    pPacket->device = device;
++    pPacket->descriptorUpdateTemplate = descriptorUpdateTemplate;
++    vktrace_add_buffer_to_trace_packet(pHeader, (void**)&(pPacket->pAllocator), sizeof(VkAllocationCallbacks), NULL);
++    vktrace_finalize_buffer_address(pHeader, (void**)&(pPacket->pAllocator));
++    if (!g_trimEnabled) {
++        FINISH_TRACE_PACKET();
++    } else {
++        vktrace_finalize_trace_packet(pHeader);
++        if (g_trimIsInTrim) {
++            trim::write_packet(pHeader);
++        } else {
++            vktrace_delete_trace_packet(&pHeader);
++        }
++    }
++    lockDescriptorUpdateTemplateCreateInfo();
++    if (descriptorUpdateTemplateCreateInfo.find(descriptorUpdateTemplate) != descriptorUpdateTemplateCreateInfo.end()) {
++        if (descriptorUpdateTemplateCreateInfo[descriptorUpdateTemplate]) {
++            if (descriptorUpdateTemplateCreateInfo[descriptorUpdateTemplate]->pDescriptorUpdateEntries)
++                free((void*)descriptorUpdateTemplateCreateInfo[descriptorUpdateTemplate]->pDescriptorUpdateEntries);
++            free(descriptorUpdateTemplateCreateInfo[descriptorUpdateTemplate]);
++        }
++        descriptorUpdateTemplateCreateInfo.erase(descriptorUpdateTemplate);
++    }
++    unlockDescriptorUpdateTemplateCreateInfo();
+ }
+ 
+ VKTRACER_EXPORT VKAPI_ATTR void VKAPI_CALL __HOOKED_vkDestroyDescriptorUpdateTemplateKHR(
+     VkDevice device, VkDescriptorUpdateTemplateKHR descriptorUpdateTemplate, const VkAllocationCallbacks* pAllocator) {
+     vktrace_trace_packet_header* pHeader;
+     packet_vkDestroyDescriptorUpdateTemplateKHR* pPacket = NULL;
+-    CREATE_TRACE_PACKET(vkDestroyDescriptorUpdateTemplate, sizeof(VkAllocationCallbacks));
+-    mdd(device)->devTable.DestroyDescriptorUpdateTemplate(device, descriptorUpdateTemplate, pAllocator);
++    CREATE_TRACE_PACKET(vkDestroyDescriptorUpdateTemplateKHR, sizeof(VkAllocationCallbacks));
++    mdd(device)->devTable.DestroyDescriptorUpdateTemplateKHR(device, descriptorUpdateTemplate, pAllocator);
+     vktrace_set_packet_entrypoint_end_time(pHeader);
+     pPacket = interpret_body_as_vkDestroyDescriptorUpdateTemplateKHR(pHeader);
+     pPacket->device = device;
+@@ -3840,7 +3869,33 @@ static size_t getDescriptorSetDataSize(VkDescriptorUpdateTemplateKHR descriptorU
+ 
+ VKTRACER_EXPORT VKAPI_ATTR void VKAPI_CALL __HOOKED_vkUpdateDescriptorSetWithTemplate(
+     VkDevice device, VkDescriptorSet descriptorSet, VkDescriptorUpdateTemplate descriptorUpdateTemplate, const void* pData) {
+-    __HOOKED_vkUpdateDescriptorSetWithTemplateKHR(device, descriptorSet, descriptorUpdateTemplate, pData);
++    vktrace_trace_packet_header* pHeader;
++    packet_vkUpdateDescriptorSetWithTemplate* pPacket = NULL;
++    size_t dataSize;
++
++    // TODO: We're saving all the data, from pData to the end of the last item, including data before offset and skipped data.
++    // This could be optimized to save only the data chunks that are actually needed.
++    dataSize = getDescriptorSetDataSize(descriptorUpdateTemplate);
++
++    CREATE_TRACE_PACKET(vkUpdateDescriptorSetWithTemplate, dataSize);
++    mdd(device)->devTable.UpdateDescriptorSetWithTemplate(device, descriptorSet, descriptorUpdateTemplate, pData);
++    vktrace_set_packet_entrypoint_end_time(pHeader);
++    pPacket = interpret_body_as_vkUpdateDescriptorSetWithTemplate(pHeader);
++    pPacket->device = device;
++    pPacket->descriptorSet = descriptorSet;
++    pPacket->descriptorUpdateTemplate = descriptorUpdateTemplate;
++    vktrace_add_buffer_to_trace_packet(pHeader, (void**)&(pPacket->pData), dataSize, pData);
++    vktrace_finalize_buffer_address(pHeader, (void**)&(pPacket->pData));
++    if (!g_trimEnabled) {
++        FINISH_TRACE_PACKET();
++    } else {
++        vktrace_finalize_trace_packet(pHeader);
++        if (g_trimIsInTrim) {
++            trim::write_packet(pHeader);
++        } else {
++            vktrace_delete_trace_packet(&pHeader);
++        }
++    }
+ }
+ 
+ VKTRACER_EXPORT VKAPI_ATTR void VKAPI_CALL __HOOKED_vkUpdateDescriptorSetWithTemplateKHR(
+@@ -3853,8 +3908,8 @@ VKTRACER_EXPORT VKAPI_ATTR void VKAPI_CALL __HOOKED_vkUpdateDescriptorSetWithTem
+     // This could be optimized to save only the data chunks that are actually needed.
+     dataSize = getDescriptorSetDataSize(descriptorUpdateTemplate);
+ 
+-    CREATE_TRACE_PACKET(vkUpdateDescriptorSetWithTemplate, dataSize);
+-    mdd(device)->devTable.UpdateDescriptorSetWithTemplate(device, descriptorSet, descriptorUpdateTemplate, pData);
++    CREATE_TRACE_PACKET(vkUpdateDescriptorSetWithTemplateKHR, dataSize);
++    mdd(device)->devTable.UpdateDescriptorSetWithTemplateKHR(device, descriptorSet, descriptorUpdateTemplate, pData);
+     vktrace_set_packet_entrypoint_end_time(pHeader);
+     pPacket = interpret_body_as_vkUpdateDescriptorSetWithTemplateKHR(pHeader);
+     pPacket->device = device;
+diff --git a/vktrace/vktrace_replay/vkreplay_vkreplay.cpp b/vktrace/vktrace_replay/vkreplay_vkreplay.cpp
+index 56c0202..9acd872 100644
+--- a/vktrace/vktrace_replay/vkreplay_vkreplay.cpp
++++ b/vktrace/vktrace_replay/vkreplay_vkreplay.cpp
+@@ -3849,7 +3849,28 @@ VkResult vkReplay::manually_replay_vkCreateDescriptorUpdateTemplateKHR(packet_vk
+ }
+ 
+ void vkReplay::manually_replay_vkDestroyDescriptorUpdateTemplate(packet_vkDestroyDescriptorUpdateTemplate *pPacket) {
+-    manually_replay_vkDestroyDescriptorUpdateTemplateKHR((packet_vkDestroyDescriptorUpdateTemplateKHR *)pPacket);
++    VkDevice remappeddevice = m_objMapper.remap_devices(pPacket->device);
++    if (pPacket->device != VK_NULL_HANDLE && remappeddevice == VK_NULL_HANDLE) {
++        vktrace_LogError("Error detected in DestroyDescriptorUpdateTemplate() due to invalid remapped VkDevice.");
++        return;
++    }
++    VkDescriptorUpdateTemplate remappedDescriptorUpdateTemplate =
++        m_objMapper.remap_descriptorupdatetemplates(pPacket->descriptorUpdateTemplate);
++    if (pPacket->descriptorUpdateTemplate != VK_NULL_HANDLE && remappedDescriptorUpdateTemplate == VK_NULL_HANDLE) {
++        vktrace_LogError("Error detected in DestroyDescriptorUpdateTemplate() due to invalid remapped VkDescriptorUpdateTemplate.");
++        return;
++    }
++    m_vkDeviceFuncs.DestroyDescriptorUpdateTemplate(remappeddevice, remappedDescriptorUpdateTemplate, pPacket->pAllocator);
++    m_objMapper.rm_from_descriptorupdatetemplates_map(pPacket->descriptorUpdateTemplate);
++
++    if (descriptorUpdateTemplateCreateInfo.find(remappedDescriptorUpdateTemplate) != descriptorUpdateTemplateCreateInfo.end()) {
++        if (descriptorUpdateTemplateCreateInfo[remappedDescriptorUpdateTemplate]) {
++            if (descriptorUpdateTemplateCreateInfo[remappedDescriptorUpdateTemplate]->pDescriptorUpdateEntries)
++                free((void *)descriptorUpdateTemplateCreateInfo[remappedDescriptorUpdateTemplate]->pDescriptorUpdateEntries);
++            free(descriptorUpdateTemplateCreateInfo[remappedDescriptorUpdateTemplate]);
++        }
++        descriptorUpdateTemplateCreateInfo.erase(remappedDescriptorUpdateTemplate);
++    }
+ }
+ 
+ void vkReplay::manually_replay_vkDestroyDescriptorUpdateTemplateKHR(packet_vkDestroyDescriptorUpdateTemplateKHR *pPacket) {
+@@ -3931,7 +3952,31 @@ void vkReplay::remapHandlesInDescriptorSetWithTemplateData(VkDescriptorUpdateTem
+ }
+ 
+ void vkReplay::manually_replay_vkUpdateDescriptorSetWithTemplate(packet_vkUpdateDescriptorSetWithTemplate *pPacket) {
+-    manually_replay_vkUpdateDescriptorSetWithTemplateKHR((packet_vkUpdateDescriptorSetWithTemplateKHR *)pPacket);
++    VkDevice remappeddevice = m_objMapper.remap_devices(pPacket->device);
++    if (pPacket->device != VK_NULL_HANDLE && remappeddevice == VK_NULL_HANDLE) {
++        vktrace_LogError("Error detected in UpdateDescriptorSetWithTemplate() due to invalid remapped VkDevice.");
++        return;
++    }
++
++    VkDescriptorSet remappedDescriptorSet = m_objMapper.remap_descriptorsets(pPacket->descriptorSet);
++    if (pPacket->descriptorSet != VK_NULL_HANDLE && remappedDescriptorSet == VK_NULL_HANDLE) {
++        vktrace_LogError("Error detected in UpdateDescriptorSetWithTemplate() due to invalid remapped VkDescriptorSet.");
++        return;
++    }
++
++    VkDescriptorUpdateTemplate remappedDescriptorUpdateTemplate =
++        m_objMapper.remap_descriptorupdatetemplates(pPacket->descriptorUpdateTemplate);
++    if (pPacket->descriptorUpdateTemplate != VK_NULL_HANDLE && remappedDescriptorUpdateTemplate == VK_NULL_HANDLE) {
++        vktrace_LogError(
++            "Error detected in UpdateDescriptorSetWithTemplate() due to invalid remapped VkDescriptorUpdateTemplateKHR.");
++        return;
++    }
++
++    // Map handles inside of pData
++    remapHandlesInDescriptorSetWithTemplateData(remappedDescriptorUpdateTemplate, (char *)pPacket->pData);
++
++    m_vkDeviceFuncs.UpdateDescriptorSetWithTemplate(remappeddevice, remappedDescriptorSet, remappedDescriptorUpdateTemplate,
++                                                    pPacket->pData);
+ }
+ 
+ void vkReplay::manually_replay_vkUpdateDescriptorSetWithTemplateKHR(packet_vkUpdateDescriptorSetWithTemplateKHR *pPacket) {
