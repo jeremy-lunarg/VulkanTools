@@ -1,0 +1,102 @@
+    "ArrayOfVkExtensionProperties": [
+        {
+            "extensionName": "VK_KHR_swapchain",
+            "specVersion": 68
+        },
+        {
+            "extensionName": "VK_KHR_display_swapchain",
+            "specVersion": 9
+        },
+        {
+            "extensionName": "VK_KHR_descriptor_update_template",
+            "specVersion": 1
+        },
+        {
+            "extensionName": "VK_KHR_maintenance1",
+            "specVersion": 1
+        },
+        {
+            "extensionName": "VK_KHR_push_descriptor",
+            "specVersion": 1
+        },
+        {
+            "extensionName": "VK_KHR_shader_draw_parameters",
+            "specVersion": 1
+        },
+        {
+            "extensionName": "VK_KHR_sampler_mirror_clamp_to_edge",
+            "specVersion": 1
+        },
+        {
+            "extensionName": "VK_KHX_device_group",
+            "specVersion": 1
+        },
+        {
+            "extensionName": "VK_KHX_external_memory",
+            "specVersion": 1
+        },
+        {
+            "extensionName": "VK_KHX_external_memory_fd",
+            "specVersion": 1
+        },
+        {
+            "extensionName": "VK_KHX_external_semaphore",
+            "specVersion": 1
+        },
+        {
+            "extensionName": "VK_KHX_external_semaphore_fd",
+            "specVersion": 1
+        },
+        {
+            "extensionName": "VK_KHX_multiview",
+            "specVersion": 1
+        },
+        {
+            "extensionName": "VK_EXT_discard_rectangles",
+            "specVersion": 1
+        },
+        {
+            "extensionName": "VK_EXT_shader_subgroup_ballot",
+            "specVersion": 1
+        },
+        {
+            "extensionName": "VK_EXT_shader_subgroup_vote",
+            "specVersion": 1
+        },
+        {
+            "extensionName": "VK_EXT_display_control",
+            "specVersion": 1
+        },
+        {
+            "extensionName": "VK_NV_dedicated_allocation",
+            "specVersion": 1
+        },
+        {
+            "extensionName": "VK_NV_glsl_shader",
+            "specVersion": 1
+        },
+        {
+            "extensionName": "VK_NV_sample_mask_override_coverage",
+            "specVersion": 1
+        },
+        {
+            "extensionName": "VK_NV_viewport_array2",
+            "specVersion": 1
+        },
+        {
+            "extensionName": "VK_NV_viewport_swizzle",
+            "specVersion": 1
+        },
+        {
+            "extensionName": "VK_NV_geometry_shader_passthrough",
+            "specVersion": 1
+        },
+        {
+            "extensionName": "VK_NVX_device_generated_commands",
+            "specVersion": 1
+        },
+        {
+            "extensionName": "VK_NVX_multiview_per_view_attributes",
+            "specVersion": 1
+        }
+    ]

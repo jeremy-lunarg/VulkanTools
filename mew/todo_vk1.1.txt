@@ -1,0 +1,9 @@
+things that need update for devsim for vk 1.1:
+
+.cpp
+schema (devsim_1_1_0)
+test data (add 1.1 constructs)
+tests scripts (invoke 1.1 constructs)
+app to test through (is vulkaninfo sufficient?)
+documentation
+
