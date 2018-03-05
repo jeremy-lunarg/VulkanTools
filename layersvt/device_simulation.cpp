@@ -479,6 +479,9 @@ class PhysicalDeviceData {
         return (iter != map_.end()) ? &iter->second : nullptr;
     }
 
+    // Create a transient PDD, for use in the special environment of pre-instance functions.
+    PhysicalDeviceData() : PhysicalDeviceData(VK_NULL_HANDLE, VK_NULL_HANDLE) {}
+
     VkInstance instance() const { return instance_; }
 
     VkPhysicalDeviceProperties physical_device_properties_;
@@ -489,7 +492,6 @@ class PhysicalDeviceData {
     ArrayOfVkLayerProperties arrayof_layer_properties_;
 
    private:
-    PhysicalDeviceData() = delete;
     PhysicalDeviceData &operator=(const PhysicalDeviceData &) = delete;
     PhysicalDeviceData(VkPhysicalDevice pd, VkInstance instance) : physical_device_(pd), instance_(instance) {
         physical_device_properties_ = {};
@@ -1453,6 +1455,55 @@ VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL GetInstanceProcAddr(VkInstance instance
 }
 
 }  // anonymous namespace
+
+// Pre-Instance Functions (see [LALI]) ///////////////////////////////////////////////////////////////////////////////////////////
+// The Vulkan loader does not guarantee that layer state is preserved across calls before vkCreateInstance(),
+// so every pre-instance invocation must create a new throw-away PDD and populate by re-loading the JSON configuraton.
+
+extern "C" VK_LAYER_EXPORT VKAPI_ATTR VkResult VKAPI_CALL devsimEnumerateInstanceLayerProperties(
+    VkEnumerateInstanceLayerPropertiesChain *pChain, uint32_t *pPropertyCount, VkLayerProperties *pProperties) {
+    DebugPrintf("devsimEnumerateInstanceLayerProperties %s ========================================\n",
+                (pProperties ? "VALUES" : "COUNT"));
+    assert(pChain);
+    std::lock_guard<std::mutex> lock(global_lock);
+
+    PhysicalDeviceData pdd;
+    JsonLoader json_loader(pdd);
+    json_loader.LoadFiles();
+
+    // Are there JSON overrides, or should we call down to return the original values?
+    const uint32_t src_count = static_cast<uint32_t>(pdd.arrayof_layer_properties_.size());
+    if (src_count == 0) {
+        return pChain->CallDown(pPropertyCount, pProperties);
+    }
+
+    return EnumerateProperties(src_count, pdd.arrayof_layer_properties_.data(), pPropertyCount, pProperties);
+}
+
+extern "C" VK_LAYER_EXPORT VKAPI_ATTR VkResult VKAPI_CALL
+devsimEnumerateInstanceExtensionProperties(VkEnumerateInstanceExtensionPropertiesChain *pChain, const char *pLayerName,
+                                           uint32_t *pPropertyCount, VkExtensionProperties *pProperties) {
+    DebugPrintf("devsimEnumerateInstanceExtensionProperties \"%s\" %s ========================================\n",
+                (pLayerName ? pLayerName : ""), (pProperties ? "VALUES" : "COUNT"));
+    assert(pChain);
+    std::lock_guard<std::mutex> lock(global_lock);
+
+    PhysicalDeviceData pdd;
+    JsonLoader json_loader(pdd);
+    json_loader.LoadFiles();
+
+    // Are there JSON overrides, or should we call down to return the original values?
+    const uint32_t src_count = static_cast<uint32_t>(pdd.arrayof_layer_properties_.size());
+    if (src_count == 0) {
+        return pChain->CallDown(pLayerName, pPropertyCount, pProperties);
+    }
+
+    // Workaround for the devsim_1_0_0 schema, which can not properly support Vulkan extension overrides in JSON.
+    // If a devsim_1_0_0 configuration defines layers, a query of those layers will return zero extensions.
+    DebugPrintf("WARN Returning zero extensions for JSON-defined layer \"%s\"\n", pLayerName);
+    *pPropertyCount = 0;
+    return VK_SUCCESS;
+}
 
 // Function symbols statically exported by this layer's library //////////////////////////////////////////////////////////////////
 // Keep synchronized with VisualStudio's VkLayer_device_simulation.def
