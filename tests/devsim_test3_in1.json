@@ -311,5 +311,7 @@
       "implementationVersion": 900006008,
       "description": "test3 layer D"
     }
+  ],
+  "ArrayOfVkExtensionProperties": [
   ]
 }
